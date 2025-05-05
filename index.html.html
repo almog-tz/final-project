@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Press on the Logo</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+    }
+
+    .image {
+      position: absolute;
+      width: 100px;
+      height: 100px;
+      cursor: pointer;
+      display: none;
+    }
+
+    #timer {
+      position: fixed;
+      top: 10px;
+      right: 20px;
+      font-size: 24px;
+      font-weight: bold;
+      background-color: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-family: sans-serif;
+      display: none;
+      z-index: 999;
+    }
+
+    #caughtCounter, #leftCounter {
+      position: fixed;
+      bottom: 10px;
+      font-size: 20px;
+      font-family: sans-serif;
+      background-color: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 10px;
+      display: none;
+    }
+
+    #caughtCounter {
+      right: 20px;
+    }
+
+    #leftCounter {
+      left: 20px;
+    }
+
+    #startScreen, #loseScreen, #winScreen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: #111;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-family: sans-serif;
+      z-index: 999;
+    }
+
+    #startScreen h1, #loseScreen h1, #winScreen h1 {
+      font-size: 48px;
+      margin-bottom: 20px;
+    }
+
+    button {
+      padding: 15px 30px;
+      font-size: 20px;
+      border: none;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    #startButton {
+      background-color: #4CAF50;
+    }
+
+    #startButton:hover {
+      background-color: #45a049;
+    }
+
+    #restartButton {
+      background-color: #f44336;
+    }
+
+    #restartButton:hover {
+      background-color: #d32f2f;
+    }
+
+    #playAgainButton {
+      background-color: #4CAF50;
+    }
+
+    #playAgainButton:hover {
+      background-color: #45a049;
+    }
+
+    #gameBackground {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-image: url('A.jpg'); 
+      background-size: cover;
+      background-position: center;
+      z-index: -1; 
+    }
+  </style>
+</head>
+<body>
+
+  <div id="gameBackground"></div>
+
+  <div id="startScreen">
+    <h1>Press on the Logo</h1>
+    <button id="startButton">Start Game</button>
+  </div>
+
+  <div id="timer">Time: 40s</div>
+  <div id="caughtCounter">Caught: 0</div>
+  <div id="leftCounter">Left: 10</div>
+
+  <div id="loseScreen" style="display: none;">
+    <h1>You Lost! Too Slow</h1>
+    <button id="restartButton">Restart Game</button>
+  </div>
+
+  <div id="winScreen" style="display: none;">
+    <h1>You Win!</h1>
+    <button id="playAgainButton">Play Again</button>
+  </div>
+
+  
+  <img class="image" src="fortnite.png" alt="Image 1">
+  <img class="image" src="minecraft.png" alt="Image 2">
+  <img class="image" src="brawl.png" alt="Image 3">
+  <img class="image" src="Among-Us- almog.png" alt="Image 4">
+  <img class="image" src="קלאש-רויאל.png" alt="Image 5">
+  <img class="image" src="stumble guys.png" alt="Image 6">
+  <img class="image" src="sling kong.png" alt="Image 7">
+  <img class="image" src="subway surfers.png" alt="Image 8">
+  <img class="image" src="fc25.png" alt="Image 9">
+  <img class="image" src="match masters.png" alt="Image 10">
+
+ 
+  <audio id="winSound" src="x.mp3" preload="auto"></audio>
+  <audio id="loseSound" src="a.mp3" preload="auto"></audio>
+  <audio id="bgMusic" src="r.mp3" preload="auto" loop></audio>
+  <audio id="clickSound" src=".mp3" preload="auto"></audio>
+
+  <script>
+    const images = document.querySelectorAll(".image");
+    const timerElement = document.getElementById("timer");
+    const caughtCounter = document.getElementById("caughtCounter");
+    const leftCounter = document.getElementById("leftCounter");
+    const startScreen = document.getElementById("startScreen");
+    const loseScreen = document.getElementById("loseScreen");
+    const winScreen = document.getElementById("winScreen");
+    const startButton = document.getElementById("startButton");
+    const restartButton = document.getElementById("restartButton");
+    const playAgainButton = document.getElementById("playAgainButton");
+
+    const winSound = document.getElementById("winSound");
+    const loseSound = document.getElementById("loseSound");
+    const bgMusic = document.getElementById("bgMusic");
+    const clickSound = document.getElementById("clickSound");
+
+    const imageSize = 100;
+    const screenWidth = window.innerWidth;
+    const screenHeight = window.innerHeight;
+
+    let teleportInterval;
+    let timerInterval;
+    let timeLeft = 40;
+    let caught = 0;
+    let left = images.length;
+
+    function isOverlapping(x1, y1, x2, y2) {
+      return !(x1 + imageSize < x2 || x1 > x2 + imageSize || y1 + imageSize < y2 || y1 > y2 + imageSize);
+    }
+
+    function teleportAllImages() {
+      const placedPositions = [];
+
+      images.forEach(image => {
+        if (image.style.display === 'none') return;
+
+        let tries = 0;
+        let positionFound = false;
+        let x, y;
+
+        while (!positionFound && tries < 500) {
+          x = Math.random() * (screenWidth - imageSize);
+          y = Math.random() * (screenHeight - imageSize);
+          positionFound = true;
+
+          for (const [px, py] of placedPositions) {
+            if (isOverlapping(x, y, px, py)) {
+              positionFound = false;
+              break;
+            }
+          }
+
+          tries++;
+        }
+
+        if (positionFound) {
+          image.style.left = `${x}px`;
+          image.style.top = `${y}px`;
+          placedPositions.push([x, y]);
+        }
+      });
+    }
+
+    function startGame() {
+      timeLeft = 40;
+      caught = 0;
+      left = images.length;
+
+      startScreen.style.display = "none";
+      loseScreen.style.display = "none";
+      winScreen.style.display = "none";
+      timerElement.style.display = "block";
+      caughtCounter.style.display = "block";
+      leftCounter.style.display = "block";
+
+      timerElement.textContent = `Time: ${timeLeft}s`;
+      caughtCounter.textContent = `Caught: ${caught}`;
+      leftCounter.textContent = `Left: ${left}`;
+
+      bgMusic.currentTime = 0;
+      bgMusic.play();
+
+      images.forEach(image => {
+        image.style.display = "block";
+        image.addEventListener("click", () => {
+          if (image.style.display !== "none") {
+            clickSound.currentTime = 0;
+            clickSound.play();
+            image.style.display = "none";
+            caught++;
+            left--;
+            caughtCounter.textContent = `Caught: ${caught}`;
+            leftCounter.textContent = `Left: ${left}`;
+            checkWinCondition();
+          }
+        });
+      });
+
+      teleportAllImages();
+      teleportInterval = setInterval(teleportAllImages, 600);
+
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        timerElement.textContent = `Time: ${timeLeft}s`;
+
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          clearInterval(teleportInterval);
+          bgMusic.pause();
+          bgMusic.currentTime = 0;
+
+          const anyVisible = Array.from(images).some(img => img.style.display !== "none");
+
+          if (anyVisible) {
+            caughtCounter.style.display = "none";
+            leftCounter.style.display = "none";
+            loseScreen.style.display = "flex"; 
+            loseSound.play();
+          } else {
+            showWinScreen();
+          }
+        }
+      }, 1000);
+    }
+
+    function checkWinCondition() {
+      const allHidden = Array.from(images).every(img => img.style.display === "none");
+      if (allHidden) {
+        clearInterval(timerInterval);
+        clearInterval(teleportInterval);
+        showWinScreen();
+      }
+    }
+
+    function showWinScreen() {
+      caughtCounter.style.display = "none";
+      leftCounter.style.display = "none";
+      winScreen.style.display = "flex"; 
+      timerElement.style.display = "block";
+      timerElement.textContent = `Time: ${timeLeft}s`;
+
+      bgMusic.pause();
+      bgMusic.currentTime = 0;
+      winSound.play();
+    }
+
+    startButton.addEventListener("click", startGame);
+    restartButton.addEventListener("click", () => location.reload());
+    playAgainButton.addEventListener("click", () => location.reload());
+  </script>
+</body>
+</html>
